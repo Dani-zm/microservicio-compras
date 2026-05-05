@@ -1,10 +1,8 @@
 [phases.build]
 cmds = [
     "pip install -r requirements.txt",
-    "python manage.py collectstatic --noinput",
-    "python manage.py migrate",
-    "python manage.py shell -c \"from django.contrib.auth.models import User; User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@hospital.com', 'admin1234')\""
+    "python manage.py collectstatic --noinput"
 ]
 
 [start]
-cmd = "gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT"
+cmd = "python manage.py migrate && python manage.py createsuperuser --noinput --username admin --email admin@hospital.com || true && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT"
