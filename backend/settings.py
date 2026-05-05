@@ -28,6 +28,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']  # Railway y pruebas con compañeros
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://microservicio-compras-production.up.railway.app',
+    'http://localhost:8000',
+]
+
 
 # Application definition
 
