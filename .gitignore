@@ -1,0 +1,27 @@
+# Entorno virtual - NO subir
+venv/
+.venv/
+env/
+
+# Django
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+db.sqlite3
+staticfiles/
+
+# Variables de entorno
+.env
+*.env
+
+# VS Code
+.vscode/
+
+# Documentación interna (no es código del proyecto)
+backend/apunte/
+
+# Sistema
+.DS_Store
+Thumbs.db
