@@ -23,6 +23,23 @@ let currentEndpoint = 'ordenes';
 let currentData = [];
 let isGenericQuery = false; 
 let currentFieldsSchema = null;
+let editingId = null; // Para saber si estamos editando (PUT) o creando (POST)
+
+// Función para obtener el CSRF token de las cookies de Django
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 const reportesGenericos = [
     { title: 'Join 2 Tablas (Proveedores/Catálogo)', url: 'proveedor-productos/join_dos_tablas' },
@@ -84,10 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable(filteredData);
     });
 
-    btnAdd.addEventListener('click', openAddModal);
+    btnAdd.addEventListener('click', () => openModal());
     modalClose.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
-    btnSave.addEventListener('click', saveNewRecord);
+    btnSave.addEventListener('click', saveRecord);
 
     loadData(currentEndpoint, "Órdenes de Compra");
 });
@@ -131,7 +148,12 @@ async function fetchSchema(endpoint) {
 async function deleteRecord(id) {
     if (!confirm(`¿Estás seguro de que deseas eliminar el registro ${id}?`)) return;
     try {
-        const res = await fetch(`${API_BASE_URL}${currentEndpoint}/${id}/`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE_URL}${currentEndpoint}/${id}/`, { 
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
         if (res.ok) {
             const activeBtn = document.querySelector('.nav-list button.active');
             loadData(currentEndpoint, activeBtn.innerText);
@@ -141,7 +163,7 @@ async function deleteRecord(id) {
     } catch(e) { alert(e.message); }
 }
 
-async function saveNewRecord() {
+async function saveRecord() {
     const formData = new FormData(crudForm);
     const jsonBody = {};
     
@@ -161,10 +183,16 @@ async function saveNewRecord() {
         }
     });
 
+    const url = editingId ? `${API_BASE_URL}${currentEndpoint}/${editingId}/` : `${API_BASE_URL}${currentEndpoint}/`;
+    const method = editingId ? 'PUT' : 'POST';
+
     try {
-        const res = await fetch(`${API_BASE_URL}${currentEndpoint}/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const res = await fetch(url, {
+            method: method,
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') 
+            },
             body: JSON.stringify(jsonBody)
         });
 
@@ -228,10 +256,22 @@ function renderTable(data) {
         
         if (!isGenericQuery) {
             const tdAcciones = document.createElement('td');
+            tdAcciones.style.display = 'flex';
+            tdAcciones.style.gap = '5px';
+
+            const btnEdit = document.createElement('button');
+            btnEdit.className = 'btn-secondary';
+            btnEdit.style.padding = '6px 10px';
+            btnEdit.style.fontSize = '0.8rem';
+            btnEdit.innerHTML = '<i class="fa-solid fa-pen"></i> Editar';
+            btnEdit.onclick = () => openModal(item, pkValue);
+
             const btnDel = document.createElement('button');
             btnDel.className = 'btn-danger';
             btnDel.innerHTML = '<i class="fa-solid fa-trash"></i> Eliminar';
             btnDel.onclick = () => deleteRecord(pkValue);
+            
+            tdAcciones.appendChild(btnEdit);
             tdAcciones.appendChild(btnDel);
             tr.appendChild(tdAcciones);
         }
@@ -240,9 +280,10 @@ function renderTable(data) {
     });
 }
 
-function openAddModal() {
+function openModal(itemData = null, pk = null) {
     crudForm.innerHTML = '';
-    modalTitle.innerText = `Agregar a ${currentEndpoint.toUpperCase()}`;
+    editingId = pk;
+    modalTitle.innerText = editingId ? `Editar ${currentEndpoint.toUpperCase()}` : `Agregar a ${currentEndpoint.toUpperCase()}`;
 
     if (!currentFieldsSchema) {
         alert("El esquema aún no ha cargado o este endpoint no soporta inserción.");
@@ -264,14 +305,7 @@ function openAddModal() {
         if (fieldMeta.type === 'boolean') {
             input = document.createElement('input');
             input.type = 'checkbox';
-        } else if (fieldMeta.type === 'string') {
-            input = document.createElement('input');
-            input.type = 'text';
-            if (fieldMeta.max_length) input.maxLength = fieldMeta.max_length;
-        } else if (fieldMeta.type === 'decimal' || fieldMeta.type === 'integer') {
-            input = document.createElement('input');
-            input.type = 'number';
-            input.step = fieldMeta.type === 'decimal' ? '0.01' : '1';
+            if (itemData && itemData[fieldName]) input.checked = true;
         } else if (fieldMeta.type === 'choice') {
             input = document.createElement('select');
             fieldMeta.choices.forEach(c => {
@@ -279,9 +313,13 @@ function openAddModal() {
                 opt.value = c.value; opt.innerText = c.display_name;
                 input.appendChild(opt);
             });
+            if (itemData && itemData[fieldName]) input.value = itemData[fieldName];
         } else {
             input = document.createElement('input');
-            input.type = 'text';
+            input.type = fieldMeta.type === 'decimal' || fieldMeta.type === 'integer' ? 'number' : 'text';
+            if (fieldMeta.type === 'decimal') input.step = '0.01';
+            if (fieldMeta.max_length) input.maxLength = fieldMeta.max_length;
+            if (itemData && itemData[fieldName]) input.value = itemData[fieldName];
         }
 
         input.name = fieldName;
@@ -297,4 +335,5 @@ function openAddModal() {
 
 function closeModal() {
     crudModal.style.display = 'none';
+    editingId = null;
 }
