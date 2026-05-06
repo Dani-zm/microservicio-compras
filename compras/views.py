@@ -257,12 +257,14 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
                         
                         if resultado == 'Aprobado':
                             orden.token_legal = codigo_rev
+                            orden.estado = 'Emitida'  # Aprobada por Legal, puede proceder
                             orden.observaciones = f"Aprobado por Legal: {obs}"
                         else:
                             orden.token_legal = "Rechazado"
+                            orden.estado = 'Cancelada'  # Rechazada por Legal
                             orden.observaciones = f"Rechazado por Legal: {obs}"
                             
-                        orden.save(update_fields=['token_legal', 'observaciones'])
+                        orden.save(update_fields=['token_legal', 'estado', 'observaciones'])
                         return Response({
                             'mensaje': f"El estado ha sido actualizado a: {resultado}",
                             'token_legal': orden.token_legal
@@ -297,10 +299,11 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
                 texto_respuesta = respuesta.text.strip()
                 
                 # Legal responde con un texto plano "Solicitud creada correctamente."
-                # Guardamos ese texto como confirmación temporal
+                # Guardamos ese texto como confirmación temporal y cambiamos estado a Pendiente
                 orden.token_legal = "Enviado a Legal"
+                orden.estado = 'Pendiente'  # En espera de respuesta de Legal
                 orden.observaciones = texto_respuesta
-                orden.save(update_fields=['token_legal', 'observaciones'])
+                orden.save(update_fields=['token_legal', 'estado', 'observaciones'])
 
                 return Response({
                     'mensaje': f'Solicitud enviada a Legal para {nombre_producto}.',
@@ -360,16 +363,16 @@ class DetalleOrdenViewSet(SoftDeleteModelViewSet):
         datos = [{'producto': item['id_producto__nombre_producto'], 'cantidad': item['cantidad_total']} for item in query]
         return Response(datos, status=status.HTTP_200_OK)
 
-    # CU-10 (Almacenero): Productos controlados que están en pedidos pendientes
+    # CU-10 (Almacenero): Productos controlados que están en pedidos pendientes de aprobación legal
     @action(detail=False, methods=['get'])
     def productos_controlados_pedidos(self, request):
-        # Filtra que sea producto controlado y que la orden esté en estado 'Pendiente'
+        # Muestra productos controlados cuya orden fue enviada a Legal y está esperando respuesta
         query = self.get_queryset().filter(
             id_producto__es_controlado=True,
-            id_orden__estado='Pendiente'
+            id_orden__token_legal='Enviado a Legal'  # Solo las que están en espera de legal
         ).select_related('id_producto', 'id_orden')
         
-        datos = [{'orden': det.id_orden.codigo_orden, 'producto_controlado': det.id_producto.nombre_producto, 'cantidad': det.cantidad} for det in query]
+        datos = [{'orden': det.id_orden.codigo_orden, 'producto_controlado': det.id_producto.nombre_producto, 'cantidad': det.cantidad, 'estado_aprobacion': det.id_orden.estado} for det in query]
         return Response(datos, status=status.HTTP_200_OK)
 
 
