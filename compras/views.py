@@ -106,6 +106,27 @@ class RequisicionInternaViewSet(SoftDeleteModelViewSet):
         query = self.get_queryset().annotate(total_ordenes=Count('ordenes_generadas')).values('area_solicitante', 'total_ordenes')
         return Response(list(query), status=status.HTTP_200_OK)
 
+    # ENDPOINT FAKE PARA LOGÍSTICA (Integración Universidad)
+    @action(detail=False, methods=['post'], url_path='recibir_pedido_logistica')
+    def recibir_pedido_logistica(self, request):
+        # Simulamos que recibimos la petición de logística
+        data = request.data
+        return Response({
+            "mensaje": "Pedido de logística recibido correctamente. Procesando requisición de insumos.",
+            "datos_recibidos": data,
+            "estado": "En revisión"
+        }, status=status.HTTP_201_CREATED)
+
+    # ENDPOINT FAKE PARA MANTENIMIENTO Y ACTIVOS (Integración Universidad)
+    @action(detail=False, methods=['post'], url_path='recibir_solicitud_activo')
+    def recibir_solicitud_activo(self, request):
+        data = request.data
+        return Response({
+            "mensaje": "Solicitud de activo/repuesto de Mantenimiento recibida correctamente.",
+            "datos_recibidos": data,
+            "estado": "Pendiente de Presupuesto"
+        }, status=status.HTTP_201_CREATED)
+
 
 class OrdenCompraViewSet(SoftDeleteModelViewSet):
     queryset = OrdenCompra.objects.all()
