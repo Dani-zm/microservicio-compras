@@ -400,6 +400,25 @@ class PresupuestoMensualViewSet(viewsets.ModelViewSet):
     serializer_class = PresupuestoMensualSerializer
     lookup_field = 'periodo'
 
+    def list(self, request, *args, **kwargs):
+        # Actualizar dinámicamente los saldos en la base de datos antes de devolver la lista
+        for p in self.get_queryset():
+            try:
+                año, mes = p.periodo.split('-')
+                gasto = OrdenCompra.objects.filter(
+                    fecha_orden__year=año,
+                    fecha_orden__month=mes
+                ).exclude(estado='Cancelada').aggregate(total=Sum('monto_total'))['total'] or 0
+                
+                nuevo_saldo = p.monto_asignado - gasto
+                if p.monto_disponible != nuevo_saldo:
+                    p.monto_disponible = nuevo_saldo
+                    p.save(update_fields=['monto_disponible'])
+            except ValueError:
+                pass
+                
+        return super().list(request, *args, **kwargs)
+
     # Consulta Genérica 8: Meses donde el presupuesto disponible es menor al 20% del asignado
     @action(detail=False, methods=['get'])
     def presupuesto_bajo(self, request):
