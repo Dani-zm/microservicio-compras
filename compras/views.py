@@ -410,10 +410,11 @@ class PresupuestoMensualViewSet(viewsets.ModelViewSet):
         for p in self.get_queryset():
             try:
                 año, mes = p.periodo.split('-')
-                gasto = OrdenCompra.objects.filter(
-                    fecha_orden__year=año,
-                    fecha_orden__month=mes
-                ).exclude(estado='Cancelada').aggregate(total=Sum('monto_total'))['total'] or 0
+                # Usamos la suma REAL de los subtotales de DetalleOrden (misma fuente que Gasto por Producto)
+                gasto = DetalleOrden.objects.filter(
+                    id_orden__fecha_orden__year=año,
+                    id_orden__fecha_orden__month=mes
+                ).exclude(id_orden__estado='Cancelada').aggregate(total=Sum('subtotal'))['total'] or 0
                 
                 nuevo_saldo = p.monto_asignado - gasto
                 if p.monto_disponible != nuevo_saldo:
@@ -437,29 +438,28 @@ class PresupuestoMensualViewSet(viewsets.ModelViewSet):
         query = self.get_queryset().order_by('-periodo')
         datos = []
         for p in query:
-            # Dividimos el periodo (Ej: '2026-05')
             try:
                 año, mes = p.periodo.split('-')
-                # Calculamos la suma de monto_total de todas las órdenes de este mes
-                gasto = OrdenCompra.objects.filter(
-                    fecha_orden__year=año,
-                    fecha_orden__month=mes
-                ).exclude(estado='Cancelada').aggregate(total=Sum('monto_total'))['total'] or 0
+                # Usamos la suma REAL de los subtotales de DetalleOrden
+                # Es la misma fuente que usa la consulta 'Gasto por Producto'
+                # => ambas consultas siempre coincidirán
+                gasto_real = DetalleOrden.objects.filter(
+                    id_orden__fecha_orden__year=año,
+                    id_orden__fecha_orden__month=mes
+                ).exclude(id_orden__estado='Cancelada').aggregate(total=Sum('subtotal'))['total'] or 0
                 
-                # Actualizamos el saldo dinámicamente
-                saldo_real = p.monto_asignado - gasto
+                saldo_real = p.monto_asignado - gasto_real
                 
                 datos.append({
-                    'periodo': p.periodo, 
-                    'presupuesto_inicial': p.monto_asignado, 
-                    'gasto_ejecutado': gasto,
-                    'saldo_actual': saldo_real
+                    'periodo': p.periodo,
+                    'presupuesto_inicial': p.monto_asignado,
+                    'gasto_ejecutado': gasto_real,   # Suma real de subtotales de detalle
+                    'saldo_actual': saldo_real        # Automático: presupuesto - gasto real
                 })
             except ValueError:
-                # Por si el periodo no tiene formato válido
                 datos.append({
-                    'periodo': p.periodo, 
-                    'presupuesto_inicial': p.monto_asignado, 
+                    'periodo': p.periodo,
+                    'presupuesto_inicial': p.monto_asignado,
                     'gasto_ejecutado': p.monto_asignado - p.monto_disponible,
                     'saldo_actual': p.monto_disponible
                 })
