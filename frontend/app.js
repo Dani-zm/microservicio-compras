@@ -163,6 +163,29 @@ async function deleteRecord(id) {
     } catch(e) { alert(e.message); }
 }
 
+async function solicitarAprobacionLegal(id) {
+    if (!confirm(`¿Solicitar aprobación legal a la API externa para la orden ${id}?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}ordenes/${id}/solicitar_legal/`, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert("Aprobación Legal: " + data.mensaje + "\nToken: " + (data.token_legal || "Ninguno"));
+            const activeBtn = document.querySelector('.nav-list button.active');
+            loadData(currentEndpoint, activeBtn.innerText);
+        } else {
+            alert("Error en Legal:\n" + (data.error || data.mensaje) + "\nDetalle: " + data.detalle);
+            const activeBtn = document.querySelector('.nav-list button.active');
+            loadData(currentEndpoint, activeBtn.innerText);
+        }
+    } catch(e) { alert(e.message); }
+}
+
 async function saveRecord() {
     const formData = new FormData(crudForm);
     const jsonBody = {};
@@ -273,6 +296,18 @@ function renderTable(data) {
             
             tdAcciones.appendChild(btnEdit);
             tdAcciones.appendChild(btnDel);
+
+            // Si estamos en la tabla Órdenes, agregar botón "Solicitar Legal"
+            if (currentEndpoint === 'ordenes') {
+                const btnLegal = document.createElement('button');
+                btnLegal.className = 'btn-success';
+                btnLegal.style.padding = '6px 10px';
+                btnLegal.style.fontSize = '0.8rem';
+                btnLegal.innerHTML = '<i class="fa-solid fa-gavel"></i> Legal';
+                btnLegal.onclick = () => solicitarAprobacionLegal(pkValue);
+                tdAcciones.appendChild(btnLegal);
+            }
+
             tr.appendChild(tdAcciones);
         }
 

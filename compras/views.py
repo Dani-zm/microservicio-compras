@@ -217,7 +217,7 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
         try:
             respuesta = http_requests.post(
                 MS_LEGAL_SOLICITAR_TOKEN,
-                params=payload,   # Legal usa query params según su Swagger
+                json=payload,   # Legal usa body JSON
                 timeout=10
             )
 
