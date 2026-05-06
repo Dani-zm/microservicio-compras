@@ -306,9 +306,9 @@ async function generarPresupuestosPrueba() {
     const pastMonth2 = date.toISOString().slice(0, 7);
     
     const presupuestos = [
-        {"periodo": currentMonth, "monto_asignado": 50000.00, "observaciones": "Presupuesto inicial asignado por Finanzas para mes actual"},
-        {"periodo": pastMonth1, "monto_asignado": 40000.00, "observaciones": "Presupuesto del mes pasado"},
-        {"periodo": pastMonth2, "monto_asignado": 35000.00, "observaciones": "Presupuesto de hace 2 meses"}
+        {"periodo": currentMonth, "monto_asignado": 50000.00, "monto_disponible": 50000.00, "observaciones": "Presupuesto inicial asignado por Finanzas para mes actual"},
+        {"periodo": pastMonth1, "monto_asignado": 40000.00, "monto_disponible": 40000.00, "observaciones": "Presupuesto del mes pasado"},
+        {"periodo": pastMonth2, "monto_asignado": 35000.00, "monto_disponible": 35000.00, "observaciones": "Presupuesto de hace 2 meses"}
     ];
     
     try {
