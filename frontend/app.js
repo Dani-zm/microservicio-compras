@@ -195,6 +195,11 @@ async function saveRecord() {
             jsonBody[key] = true;
         } else if (value.trim() === '') {
             jsonBody[key] = null;
+        } else if (currentFieldsSchema[key].type === 'datetime' && value) {
+            // El input datetime-local devuelve hora local del navegador.
+            // Lo convertimos a UTC ISO para que Django lo guarde correctamente.
+            const localDate = new Date(value);
+            jsonBody[key] = isNaN(localDate) ? null : localDate.toISOString();
         } else {
             jsonBody[key] = value;
         }
