@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compras y Abastecimiento — Hospital</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f3e5.png" type="image/png">
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-hospital logo-icon"></i>
+                <h2>Compras y Abastecimiento</h2>
+            </div>
+            
+            <div class="nav-section">
+                <h3><i class="fa-solid fa-folder-open"></i> Registros</h3>
+                <ul class="nav-list" id="main-nav">
+                    <li><button data-endpoint="proveedores"><i class="fa-solid fa-truck-medical"></i> Proveedores</button></li>
+                    <li><button data-endpoint="productos"><i class="fa-solid fa-pills"></i> Productos</button></li>
+                    <li><button data-endpoint="proveedor-productos"><i class="fa-solid fa-book-medical"></i> Catálogo Precios</button></li>
+                    <li><button data-endpoint="requisiciones"><i class="fa-solid fa-clipboard-list"></i> Requisiciones</button></li>
+                    <li><button class="active" data-endpoint="ordenes"><i class="fa-solid fa-file-invoice-dollar"></i> Órdenes de Compra</button></li>
+                    <li><button data-endpoint="detalles-orden"><i class="fa-solid fa-list"></i> Detalles de Orden</button></li>
+                    <li><button data-endpoint="recepciones"><i class="fa-solid fa-box-open"></i> Recepciones</button></li>
+                    <li><button data-endpoint="presupuestos"><i class="fa-solid fa-chart-pie"></i> Presupuestos</button></li>
+                </ul>
+            </div>
+
+            <div class="nav-section" style="overflow-y: auto; max-height: 50vh;">
+                <h3><i class="fa-solid fa-chart-line"></i> Reportes e Informes</h3>
+                <ul class="nav-list" id="reports-nav">
+                    <!-- Dinámico: Agregaremos las 20 consultas aquí -->
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="topbar">
+                <h1 id="page-title">Cargando...</h1>
+                <div class="connection-toggle">
+                    <span id="env-label" class="status-badge online"><i class="fa-solid fa-cloud"></i> Railway</span>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div class="card glass">
+                    <div class="table-controls">
+                        <input type="text" id="search-input" placeholder="Buscar en la tabla...">
+                        <div>
+                            <button class="btn-success" id="btn-add" style="display:none;"><i class="fa-solid fa-plus"></i> Nuevo Registro</button>
+                            <button class="btn-primary" id="btn-refresh"><i class="fa-solid fa-rotate-right"></i> Refrescar</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table id="data-table">
+                            <thead><tr id="table-head"></tr></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                        <div id="loading-spinner" class="spinner-container">
+                            <div class="spinner"></div>
+                            <p>Obteniendo datos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for CRUD Create -->
+    <div id="crud-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 id="modal-title">Agregar Registro</h2>
+                <span class="close-btn" id="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="crud-form">
+                    <!-- Generado dinámicamente -->
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="btn-cancel">Cancelar</button>
+                <button class="btn-primary" id="btn-save">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

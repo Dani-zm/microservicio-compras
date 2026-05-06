@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Proveedor, Producto, ProveedorProducto, 
-    RequisicionInterna, OrdenCompra, DetalleOrden, RecepcionPedido
+    RequisicionInterna, OrdenCompra, DetalleOrden, RecepcionPedido,
+    PresupuestoMensual
 )
 
 
@@ -12,3 +13,4 @@ admin.site.register(RequisicionInterna)
 admin.site.register(OrdenCompra)
 admin.site.register(DetalleOrden)
 admin.site.register(RecepcionPedido)
+admin.site.register(PresupuestoMensual)
