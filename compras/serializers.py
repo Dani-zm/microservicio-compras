@@ -106,6 +106,7 @@ class OrdenCompraSerializer(serializers.ModelSerializer):
         model = OrdenCompra
         fields = [
             'codigo_orden',
+            'estado',
             'fecha_orden',
             'fecha_estimada_entrega',
             'codigo_proveedor',
