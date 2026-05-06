@@ -133,7 +133,41 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
     serializer_class = OrdenCompraSerializer
     lookup_field = 'codigo_orden'
     lookup_value_regex = '[^/]+'  # Permite puntos (.) en el código de orden (como los autogenerados con milisegundos)
-    # Consulta Genérica 4: Búsqueda Filtrada 
+    
+    def list(self, request, *args, **kwargs):
+        # Sincronización automática con Gestión Legal al cargar la tabla
+        ordenes_pendientes = self.get_queryset().filter(token_legal="Enviado a Legal")
+        
+        if ordenes_pendientes.exists():
+            try:
+                # Consultamos la lista completa de revisiones de Legal
+                respuesta_revisiones = http_requests.get(
+                    "https://gestionlegal-production.up.railway.app/api/SolicitudRevisions/listaCompleta",
+                    timeout=5
+                )
+                if respuesta_revisiones.status_code == 200:
+                    revisiones = respuesta_revisiones.json()
+                    
+                    # Para cada orden pendiente, buscamos si hay una revisión
+                    for orden in ordenes_pendientes:
+                        revision = next((r for r in revisiones if r.get('codigoSolicitud') == orden.codigo_orden), None)
+                        if revision:
+                            resultado = revision.get('resultado')
+                            obs = revision.get('observaciones', '')
+                            codigo_rev = revision.get('codigo', 'Aprobado')
+                            
+                            if resultado == 'Aprobado':
+                                orden.token_legal = codigo_rev
+                                orden.observaciones = f"Aprobado por Legal: {obs}"
+                            else:
+                                orden.token_legal = "Rechazado"
+                                orden.observaciones = f"Rechazado por Legal: {obs}"
+                                
+                            orden.save(update_fields=['token_legal', 'observaciones'])
+            except Exception:
+                pass # Si la API de Legal está caída, ignoramos el error para no romper nuestra tabla
+
+        return super().list(request, *args, **kwargs)
 
     # Consulta Genérica 2:(Órdenes por Requisición)
     @action(detail=False, methods=['get'])
