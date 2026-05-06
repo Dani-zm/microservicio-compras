@@ -203,11 +203,11 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
         datos = [{'codigo': ord.codigo_orden, 'fecha_estimada': ord.fecha_estimada_entrega, 'monto': ord.monto_total} for ord in query]
         return Response(datos, status=status.HTTP_200_OK)
 
-    # CU-05 (Administrador): Órdenes que superan los 10000 Bs presupuestados
+    # CU-05 (Administrador): Órdenes con presupuesto asignado mayor a 5000 Bs
     @action(detail=False, methods=['get'])
     def ordenes_alto_presupuesto(self, request):
-        query = self.get_queryset().filter(presupuesto_asignado__gt=10000)
-        datos = [{'codigo': ord.codigo_orden, 'presupuesto': ord.presupuesto_asignado, 'validacion': ord.id_validacion_financiera} for ord in query]
+        query = self.get_queryset().filter(presupuesto_asignado__gt=5000)
+        datos = [{'codigo': ord.codigo_orden, 'presupuesto': ord.presupuesto_asignado, 'validacion': ord.id_validacion_financiera, 'token_legal': ord.token_legal} for ord in query]
         return Response(datos, status=status.HTTP_200_OK)
 
     # CU-07 (Administrador): Órdenes que no cuentan con validación financiera
@@ -335,8 +335,9 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
                 status=status.HTTP_504_GATEWAY_TIMEOUT
             )
 
-    # INTEGRACIÓN CON GESTIÓN FINANCIERA
-    # Verifica si hay presupuesto disponible para esta orden
+    # VALIDACIÓN FINANCIERA LOCAL
+    # Asigna un ID de validación financiera a la orden
+    # Verifica que el monto no supere el presupuesto disponible del mes
     @action(detail=True, methods=['post'], url_path='validar_financiera')
     def solicitar_validacion_financiera(self, request, *args, **kwargs):
         orden = self.get_object()
@@ -344,61 +345,64 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
         # Si ya tiene validación, informamos
         if orden.id_validacion_financiera:
             return Response({
-                'mensaje': f'Esta orden ya fue validada financieramente.',
+                'mensaje': f'Esta orden ya tiene validación financiera: {orden.id_validacion_financiera}',
                 'id_validacion': orden.id_validacion_financiera
             }, status=status.HTTP_200_OK)
         
-        # Determinar el periodo de la fecha de la orden
-        periodo = orden.fecha_orden.strftime('%Y-%m') if orden.fecha_orden else timezone.now().strftime('%Y-%m')
+        # Determinar el mes actual real
+        mes_actual = timezone.now().strftime('%Y-%m')
+        periodo = orden.fecha_orden.strftime('%Y-%m') if orden.fecha_orden else mes_actual
         
-        # Determinar área solicitante desde la requisición
-        area = 'Compras Hospitalarias'
-        if orden.id_requisicion:
-            area = orden.id_requisicion.area_solicitante or area
-        
-        payload = {
-            'codigoOrden': orden.codigo_orden,
-            'periodo': periodo,
-            'montoRequerido': float(orden.monto_total) if orden.monto_total else 0,
-            'areaSolicitante': area
-        }
-        
-        try:
-            respuesta = http_requests.post(
-                MS_FINANZAS_VERIFICAR_PRESUPUESTO,
-                json=payload,
-                timeout=10
-            )
-            
-            if respuesta.status_code in [200, 201]:
-                data = respuesta.json() if respuesta.text else {}
-                # Guardamos la validación
-                validacion_id = data.get('codigoValidacion', data.get('codigo', f'VAL-FIN-{orden.codigo_orden}'))
-                orden.id_validacion_financiera = validacion_id
-                orden.save(update_fields=['id_validacion_financiera'])
+        # SOLO VALIDAMOS DE FORMA ESTRICTA SI ES EL MES ACTUAL
+        if periodo == mes_actual:
+            try:
+                presupuesto = PresupuestoMensual.objects.get(periodo=periodo)
+                # Calcular gasto actual real del mes (suma de subtotales de detalle)
+                gasto_actual = DetalleOrden.objects.filter(
+                    id_orden__fecha_orden__year=periodo.split('-')[0],
+                    id_orden__fecha_orden__month=periodo.split('-')[1]
+                ).exclude(id_orden__estado='Cancelada').aggregate(total=Sum('subtotal'))['total'] or 0
                 
-                return Response({
-                    'mensaje': 'Presupuesto validado por Gestión Financiera.',
-                    'id_validacion': validacion_id,
-                    'respuesta_finanzas': data
-                }, status=status.HTTP_200_OK)
-            else:
-                error_text = respuesta.text[:200] if respuesta.text else 'Sin detalle'
-                return Response({
-                    'error': f'Finanzas rechazó la validación (código {respuesta.status_code})',
-                    'detalle': error_text
-                }, status=status.HTTP_400_BAD_REQUEST)
+                disponible = presupuesto.monto_asignado - gasto_actual
+                monto_orden = float(orden.monto_total) if orden.monto_total else 0
                 
-        except http_requests.exceptions.ConnectionError:
-            return Response(
-                {'error': 'No se pudo conectar con Gestión Financiera. Verifica que su servidor esté activo.'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-        except http_requests.exceptions.Timeout:
-            return Response(
-                {'error': 'Tiempo de espera agotado al contactar Gestión Financiera.'},
-                status=status.HTTP_504_GATEWAY_TIMEOUT
-            )
+                if monto_orden > float(disponible):
+                    return Response({
+                        'error': f'Presupuesto insuficiente. Disponible: {disponible} Bs, Orden requiere: {monto_orden} Bs',
+                        'disponible': float(disponible),
+                        'requerido': monto_orden
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except PresupuestoMensual.DoesNotExist:
+                pass  # Si no hay presupuesto registrado, permitimos la validación (simulación)
+        
+        # Generar ID de validación automático
+        import time
+        validacion_id = f'VAL-FIN-{int(time.time() * 1000) % 100000}'
+        orden.id_validacion_financiera = validacion_id
+        orden.save(update_fields=['id_validacion_financiera'])
+        
+        return Response({
+            'mensaje': f'Validación financiera asignada correctamente.',
+            'id_validacion': validacion_id
+        }, status=status.HTTP_200_OK)
+
+    # Quitar validación financiera de una orden
+    @action(detail=True, methods=['post'], url_path='quitar_validacion')
+    def quitar_validacion_financiera(self, request, *args, **kwargs):
+        orden = self.get_object()
+        
+        if not orden.id_validacion_financiera:
+            return Response({
+                'mensaje': 'Esta orden no tiene validación financiera asignada.'
+            }, status=status.HTTP_200_OK)
+        
+        old_id = orden.id_validacion_financiera
+        orden.id_validacion_financiera = None
+        orden.save(update_fields=['id_validacion_financiera'])
+        
+        return Response({
+            'mensaje': f'Validación financiera {old_id} removida correctamente.'
+        }, status=status.HTTP_200_OK)
 
 
 class DetalleOrdenViewSet(SoftDeleteModelViewSet):
@@ -451,6 +455,27 @@ class RecepcionPedidoViewSet(SoftDeleteModelViewSet):
     queryset = RecepcionPedido.objects.all()
     serializer_class = RecepcionPedidoSerializer
     lookup_field = 'codigo_recepcion'
+
+    def create(self, request, *args, **kwargs):
+        """Bloquea la creación de recepciones si la orden no tiene Legal + Financiero aprobados."""
+        codigo_orden = request.data.get('codigo_orden')
+        if codigo_orden:
+            try:
+                orden = OrdenCompra.objects.get(codigo_orden=codigo_orden)
+                errores = []
+                if not orden.token_legal or orden.token_legal in ['Enviado a Legal', 'Rechazado']:
+                    errores.append('La orden NO tiene aprobación Legal válida.')
+                if not orden.id_validacion_financiera:
+                    errores.append('La orden NO tiene validación financiera.')
+                if errores:
+                    return Response(
+                        {'error': 'No se puede recepcionar este pedido.', 'detalles': errores},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except OrdenCompra.DoesNotExist:
+                pass  # El serializer se encargará de validar que exista
+        
+        return super().create(request, *args, **kwargs)
 
     # Consulta Genérica 6: Recepciones sin factura adjunta
     @action(detail=False, methods=['get'])

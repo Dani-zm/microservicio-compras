@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnAdd.addEventListener('click', () => openModal());
-    if (btnGenerateReqs) btnGenerateReqs.addEventListener('click', generarRequisicionesPrueba);
+    // btnGenerateReqs usa onclick dinámico en loadData
     modalClose.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
     btnSave.addEventListener('click', saveRecord);
@@ -117,8 +117,15 @@ async function loadData(endpoint, title) {
     tableBody.innerHTML = '';
     loadingSpinner.style.display = 'flex';
     
-    if (endpoint === 'requisiciones') {
-        if (btnGenerateReqs) btnGenerateReqs.style.display = 'inline-flex';
+    if (endpoint === 'requisiciones' || endpoint === 'presupuestos') {
+        if (btnGenerateReqs) {
+            btnGenerateReqs.style.display = 'inline-flex';
+            // Cambiar el manejador de evento según el endpoint
+            btnGenerateReqs.onclick = () => {
+                if (endpoint === 'requisiciones') generarRequisicionesPrueba();
+                else if (endpoint === 'presupuestos') generarPresupuestosPrueba();
+            };
+        }
     } else {
         if (btnGenerateReqs) btnGenerateReqs.style.display = 'none';
     }
@@ -277,6 +284,43 @@ async function generarRequisicionesPrueba() {
         }
         alert('✅ Requisiciones generadas con éxito.');
         loadData(currentEndpoint, 'Requisiciones');
+    } catch(e) { 
+        alert('❌ Error: ' + e.message); 
+    } finally {
+        btnGenerateReqs.disabled = false;
+        btnGenerateReqs.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Poblar Datos';
+    }
+}
+
+async function generarPresupuestosPrueba() {
+    if (!confirm('¿Generar datos de prueba para Presupuestos Mensuales (Mes actual y anteriores)?')) return;
+    
+    btnGenerateReqs.disabled = true;
+    btnGenerateReqs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
+    
+    const date = new Date();
+    const currentMonth = date.toISOString().slice(0, 7); // YYYY-MM
+    date.setMonth(date.getMonth() - 1);
+    const pastMonth1 = date.toISOString().slice(0, 7);
+    date.setMonth(date.getMonth() - 1);
+    const pastMonth2 = date.toISOString().slice(0, 7);
+    
+    const presupuestos = [
+        {"periodo": currentMonth, "monto_asignado": 50000.00, "observaciones": "Presupuesto inicial asignado por Finanzas para mes actual"},
+        {"periodo": pastMonth1, "monto_asignado": 40000.00, "observaciones": "Presupuesto del mes pasado"},
+        {"periodo": pastMonth2, "monto_asignado": 35000.00, "observaciones": "Presupuesto de hace 2 meses"}
+    ];
+    
+    try {
+        for (let p of presupuestos) {
+            await fetch(`${API_BASE_URL}presupuestos/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify(p)
+            });
+        }
+        alert('✅ Presupuestos generados con éxito.');
+        loadData(currentEndpoint, 'Presupuestos');
     } catch(e) { 
         alert('❌ Error: ' + e.message); 
     } finally {
