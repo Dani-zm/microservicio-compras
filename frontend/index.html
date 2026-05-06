@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Compras Hospitalarias</title>
+    <title>Compras y Abastecimiento — Hospital</title>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/2546/2546583.png" type="image/png">
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,12 +14,12 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <i class="fa-solid fa-hospital-user logo-icon"></i>
-                <h2>Compras Hospital</h2>
+                <i class="fa-solid fa-hospital logo-icon"></i>
+                <h2>Compras y Abastecimiento</h2>
             </div>
             
             <div class="nav-section">
-                <h3><i class="fa-solid fa-database"></i> Gestión (CRUD)</h3>
+                <h3><i class="fa-solid fa-folder-open"></i> Registros</h3>
                 <ul class="nav-list" id="main-nav">
                     <li><button data-endpoint="proveedores"><i class="fa-solid fa-truck-medical"></i> Proveedores</button></li>
                     <li><button data-endpoint="productos"><i class="fa-solid fa-pills"></i> Productos</button></li>
@@ -32,7 +33,7 @@
             </div>
 
             <div class="nav-section" style="overflow-y: auto; max-height: 50vh;">
-                <h3><i class="fa-solid fa-chart-line"></i> Consultas Específicas</h3>
+                <h3><i class="fa-solid fa-chart-line"></i> Reportes e Informes</h3>
                 <ul class="nav-list" id="reports-nav">
                     <!-- Dinámico: Agregaremos las 20 consultas aquí -->
                 </ul>

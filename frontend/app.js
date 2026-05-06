@@ -42,8 +42,8 @@ function getCookie(name) {
 }
 
 const reportesGenericos = [
-    { title: 'Join 2 Tablas (Proveedores/Catálogo)', url: 'proveedor-productos/join_dos_tablas' },
-    { title: 'Join 3 Tablas (Prov/Prod/Catálogo)', url: 'proveedor-productos/join_tres_tablas' },
+    { title: 'Catálogo Proveedor-Producto', url: 'proveedor-productos/join_dos_tablas' },
+    { title: 'Detalle Completo de Catálogo', url: 'proveedor-productos/join_tres_tablas' },
     { title: 'Req. Sin Órdenes', url: 'requisiciones/requisiciones_sin_ordenes' },
     { title: 'Órdenes por Área', url: 'requisiciones/ordenes_por_area' },
     { title: 'Cantidad por Requisición', url: 'ordenes/cantidad_por_requisicion' },
