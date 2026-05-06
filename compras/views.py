@@ -132,6 +132,7 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
     queryset = OrdenCompra.objects.all()
     serializer_class = OrdenCompraSerializer
     lookup_field = 'codigo_orden'
+    lookup_value_regex = '[^/]+'  # Permite puntos (.) en el código de orden (como los autogenerados con milisegundos)
     # Consulta Genérica 4: Búsqueda Filtrada 
 
     # Consulta Genérica 2:(Órdenes por Requisición)
