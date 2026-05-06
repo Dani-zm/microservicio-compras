@@ -175,11 +175,11 @@ async function solicitarAprobacionLegal(id) {
         });
         const data = await res.json();
         if (res.ok) {
-            alert("Aprobación Legal: " + data.mensaje + "\nToken: " + (data.token_legal || "Ninguno"));
+            alert("Aprobación Legal:\n" + (data.mensaje || "Éxito") + "\nToken: " + (data.token_legal || "Ninguno"));
             const activeBtn = document.querySelector('.nav-list button.active');
             loadData(currentEndpoint, activeBtn.innerText);
         } else {
-            alert("Error en Legal:\n" + (data.error || data.mensaje) + "\nDetalle: " + data.detalle);
+            alert("Error en Legal:\n" + (data.error || data.detail || data.mensaje || JSON.stringify(data)));
             const activeBtn = document.querySelector('.nav-list button.active');
             loadData(currentEndpoint, activeBtn.innerText);
         }
