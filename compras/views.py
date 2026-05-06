@@ -158,12 +158,14 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
                             
                             if resultado == 'Aprobado':
                                 orden.token_legal = codigo_rev
+                                orden.estado = 'Emitida'  # ✅ Aprobada: puede proceder
                                 orden.observaciones = f"Aprobado por Legal: {obs}"
                             else:
                                 orden.token_legal = "Rechazado"
+                                orden.estado = 'Cancelada'  # ❌ Rechazada por Legal
                                 orden.observaciones = f"Rechazado por Legal: {obs}"
                                 
-                            orden.save(update_fields=['token_legal', 'observaciones'])
+                            orden.save(update_fields=['token_legal', 'estado', 'observaciones'])
             except Exception:
                 pass # Si la API de Legal está caída, ignoramos el error para no romper nuestra tabla
 
