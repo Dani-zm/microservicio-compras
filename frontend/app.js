@@ -186,6 +186,27 @@ async function solicitarAprobacionLegal(id) {
     } catch(e) { alert(e.message); }
 }
 
+async function solicitarValidacionFinanciera(id) {
+    if (!confirm(`¿Solicitar validación de presupuesto a Gestión Financiera para la orden ${id}?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}ordenes/${id}/validar_financiera/`, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert("Validación Financiera:\n" + (data.mensaje || "Éxito") + "\nID Validación: " + (data.id_validacion || "—"));
+            const activeBtn = document.querySelector('.nav-list button.active');
+            loadData(currentEndpoint, activeBtn.innerText);
+        } else {
+            alert("Error en Finanzas:\n" + (data.error || data.detail || data.mensaje || JSON.stringify(data)));
+        }
+    } catch(e) { alert(e.message); }
+}
+
 async function saveRecord() {
     const formData = new FormData(crudForm);
     const jsonBody = {};
@@ -308,7 +329,7 @@ function renderTable(data) {
             tdAcciones.appendChild(btnEdit);
             tdAcciones.appendChild(btnDel);
 
-            // Si estamos en la tabla Órdenes, agregar botón "Solicitar Legal"
+            // Si estamos en la tabla Órdenes, agregar botones de integración
             if (currentEndpoint === 'ordenes') {
                 const btnLegal = document.createElement('button');
                 btnLegal.className = 'btn-success';
@@ -317,6 +338,21 @@ function renderTable(data) {
                 btnLegal.innerHTML = '<i class="fa-solid fa-gavel"></i> Legal';
                 btnLegal.onclick = () => solicitarAprobacionLegal(pkValue);
                 tdAcciones.appendChild(btnLegal);
+
+                const btnFinanzas = document.createElement('button');
+                btnFinanzas.style.padding = '6px 10px';
+                btnFinanzas.style.fontSize = '0.8rem';
+                btnFinanzas.style.backgroundColor = '#6f42c1';
+                btnFinanzas.style.color = 'white';
+                btnFinanzas.style.border = 'none';
+                btnFinanzas.style.borderRadius = '4px';
+                btnFinanzas.style.cursor = 'pointer';
+                btnFinanzas.style.display = 'inline-flex';
+                btnFinanzas.style.alignItems = 'center';
+                btnFinanzas.style.gap = '4px';
+                btnFinanzas.innerHTML = '<i class="fa-solid fa-coins"></i> Finanzas';
+                btnFinanzas.onclick = () => solicitarValidacionFinanciera(pkValue);
+                tdAcciones.appendChild(btnFinanzas);
             }
 
             tr.appendChild(tdAcciones);

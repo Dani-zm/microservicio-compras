@@ -11,11 +11,12 @@ MS_COMPRAS_BASE_URL = "http://localhost:8000/api/"
 
 # --- MICROSERVICIOS EXTERNOS ---
 
-# MS Gestión Financiera (.NET)
-# Endpoints que NOSOTROS llamamos para consultar presupuesto
-MS_FINANZAS_BASE_URL = "http://localhost:5001/api/"
-MS_FINANZAS_VERIFICAR_PRESUPUESTO = MS_FINANZAS_BASE_URL + "facturas/verificar-presupuesto/"
-MS_FINANZAS_REGISTRAR_PAGO = MS_FINANZAS_BASE_URL + "pagos/registrar/"  # Se llama al recibir el pedido
+# MS Gestión Financiera (.NET) - DESPLEGADO EN RENDER
+# Endpoints que NOSOTROS llamamos para consultar presupuesto y registrar pagos
+MS_FINANZAS_BASE_URL = "https://gestionfinanciera.onrender.com/api/"
+MS_FINANZAS_VERIFICAR_PRESUPUESTO = MS_FINANZAS_BASE_URL + "facturas/verificar-presupuesto"
+MS_FINANZAS_REGISTRAR_PAGO = MS_FINANZAS_BASE_URL + "pagos/registrar"
+MS_FINANZAS_PRESUPUESTO_MENSUAL = MS_FINANZAS_BASE_URL + "presupuesto-mensual"
 
 # MS Gestión Legal (.NET) - YA DESPLEGADO EN RAILWAY
 # Endpoint real: POST /api/Solicituds

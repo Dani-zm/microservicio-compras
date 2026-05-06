@@ -14,7 +14,11 @@ from .serializers import (
     RequisicionInternaSerializer, OrdenCompraSerializer, DetalleOrdenSerializer,
     RecepcionPedidoSerializer, PresupuestoMensualSerializer
 )
-from .constants import MS_LEGAL_SOLICITAR_TOKEN
+from .constants import (
+    MS_LEGAL_SOLICITAR_TOKEN, 
+    MS_FINANZAS_VERIFICAR_PRESUPUESTO, 
+    MS_FINANZAS_REGISTRAR_PAGO
+)
 
 class SoftDeleteModelViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
@@ -331,6 +335,71 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
                 status=status.HTTP_504_GATEWAY_TIMEOUT
             )
 
+    # INTEGRACIÓN CON GESTIÓN FINANCIERA
+    # Verifica si hay presupuesto disponible para esta orden
+    @action(detail=True, methods=['post'], url_path='validar_financiera')
+    def solicitar_validacion_financiera(self, request, *args, **kwargs):
+        orden = self.get_object()
+        
+        # Si ya tiene validación, informamos
+        if orden.id_validacion_financiera:
+            return Response({
+                'mensaje': f'Esta orden ya fue validada financieramente.',
+                'id_validacion': orden.id_validacion_financiera
+            }, status=status.HTTP_200_OK)
+        
+        # Determinar el periodo de la fecha de la orden
+        periodo = orden.fecha_orden.strftime('%Y-%m') if orden.fecha_orden else timezone.now().strftime('%Y-%m')
+        
+        # Determinar área solicitante desde la requisición
+        area = 'Compras Hospitalarias'
+        if orden.id_requisicion:
+            area = orden.id_requisicion.area_solicitante or area
+        
+        payload = {
+            'codigoOrden': orden.codigo_orden,
+            'periodo': periodo,
+            'montoRequerido': float(orden.monto_total) if orden.monto_total else 0,
+            'areaSolicitante': area
+        }
+        
+        try:
+            respuesta = http_requests.post(
+                MS_FINANZAS_VERIFICAR_PRESUPUESTO,
+                json=payload,
+                timeout=10
+            )
+            
+            if respuesta.status_code in [200, 201]:
+                data = respuesta.json() if respuesta.text else {}
+                # Guardamos la validación
+                validacion_id = data.get('codigoValidacion', data.get('codigo', f'VAL-FIN-{orden.codigo_orden}'))
+                orden.id_validacion_financiera = validacion_id
+                orden.save(update_fields=['id_validacion_financiera'])
+                
+                return Response({
+                    'mensaje': 'Presupuesto validado por Gestión Financiera.',
+                    'id_validacion': validacion_id,
+                    'respuesta_finanzas': data
+                }, status=status.HTTP_200_OK)
+            else:
+                error_text = respuesta.text[:200] if respuesta.text else 'Sin detalle'
+                return Response({
+                    'error': f'Finanzas rechazó la validación (código {respuesta.status_code})',
+                    'detalle': error_text
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except http_requests.exceptions.ConnectionError:
+            return Response(
+                {'error': 'No se pudo conectar con Gestión Financiera. Verifica que su servidor esté activo.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except http_requests.exceptions.Timeout:
+            return Response(
+                {'error': 'Tiempo de espera agotado al contactar Gestión Financiera.'},
+                status=status.HTTP_504_GATEWAY_TIMEOUT
+            )
+
 
 class DetalleOrdenViewSet(SoftDeleteModelViewSet):
     queryset = DetalleOrden.objects.all()
@@ -396,6 +465,61 @@ class RecepcionPedidoViewSet(SoftDeleteModelViewSet):
         query = self.get_queryset().filter(recibido_conforme=False)
         datos = [{'codigo_recepcion': rec.codigo_recepcion, 'orden': rec.id_orden.codigo_orden, 'observaciones': rec.observaciones_recepcion} for rec in query]
         return Response(datos, status=status.HTTP_200_OK)
+
+    # INTEGRACIÓN CON GESTIÓN FINANCIERA
+    # Envía los datos de recepción y factura a Finanzas para registrar el pago al proveedor
+    @action(detail=True, methods=['post'], url_path='registrar_pago')
+    def registrar_pago_finanzas(self, request, *args, **kwargs):
+        recepcion = self.get_object()
+        orden = recepcion.id_orden
+        
+        if not recepcion.factura_numero:
+            return Response(
+                {'error': 'Esta recepción no tiene número de factura. No se puede registrar el pago.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Obtener nombre del proveedor
+        proveedor_nombre = orden.id_proveedor.nombre if orden.id_proveedor else 'Proveedor desconocido'
+        
+        payload = {
+            'codigoOrden': orden.codigo_orden,
+            'facturaNumero': recepcion.factura_numero or '',
+            'facturaArchivoUrl': recepcion.factura_archivo_url or 'sin-archivo',
+            'montoTotal': float(orden.monto_total) if orden.monto_total else 0,
+            'proveedor': proveedor_nombre,
+            'fechaRecepcion': recepcion.fecha_recepcion.isoformat() if recepcion.fecha_recepcion else timezone.now().isoformat(),
+            'recibidoConforme': recepcion.recibido_conforme
+        }
+        
+        try:
+            respuesta = http_requests.post(
+                MS_FINANZAS_REGISTRAR_PAGO,
+                json=payload,
+                timeout=10
+            )
+            
+            if respuesta.status_code in [200, 201]:
+                return Response({
+                    'mensaje': f'Pago registrado en Gestión Financiera para orden {orden.codigo_orden}.',
+                    'respuesta_finanzas': respuesta.text[:300]
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'error': f'Finanzas rechazó el registro (código {respuesta.status_code})',
+                    'detalle': respuesta.text[:200]
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except http_requests.exceptions.ConnectionError:
+            return Response(
+                {'error': 'No se pudo conectar con Gestión Financiera.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except http_requests.exceptions.Timeout:
+            return Response(
+                {'error': 'Tiempo de espera agotado al contactar Gestión Financiera.'},
+                status=status.HTTP_504_GATEWAY_TIMEOUT
+            )
 
 
 class PresupuestoMensualViewSet(viewsets.ModelViewSet):
