@@ -161,8 +161,7 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
     # INTEGRACIÓN CON GESTIÓN LEGAL
     # Llama a la API de Legal para pedir token de un fármaco controlado
     # No necesita ningún dato en el body - solo el código de la orden en la URL
-    @action(detail=True, methods=['post'], url_path='solicitar_legal',
-            serializer_class=None)  # Sin formulario - se llama con POST vacío
+    @action(detail=True, methods=['post'], url_path='solicitar_legal')
     def solicitar_aprobacion_legal(self, request, *args, **kwargs):
         orden = self.get_object()
 
