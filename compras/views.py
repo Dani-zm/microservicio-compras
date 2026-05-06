@@ -363,7 +363,12 @@ class DetalleOrdenViewSet(SoftDeleteModelViewSet):
     # CU-10 (Almacenero): Productos controlados que están en pedidos pendientes
     @action(detail=False, methods=['get'])
     def productos_controlados_pedidos(self, request):
-        query = self.get_queryset().filter(id_producto__es_controlado=True).select_related('id_producto', 'id_orden')
+        # Filtra que sea producto controlado y que la orden esté en estado 'Pendiente'
+        query = self.get_queryset().filter(
+            id_producto__es_controlado=True,
+            id_orden__estado='Pendiente'
+        ).select_related('id_producto', 'id_orden')
+        
         datos = [{'orden': det.id_orden.codigo_orden, 'producto_controlado': det.id_producto.nombre_producto, 'cantidad': det.cantidad} for det in query]
         return Response(datos, status=status.HTTP_200_OK)
 
@@ -406,10 +411,33 @@ class PresupuestoMensualViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def resumen_ejecucion(self, request):
         query = self.get_queryset().order_by('-periodo')
-        datos = [{
-            'periodo': p.periodo, 
-            'presupuesto_inicial': p.monto_asignado, 
-            'gasto_ejecutado': p.monto_asignado - p.monto_disponible,
-            'saldo_actual': p.monto_disponible
-        } for p in query]
+        datos = []
+        for p in query:
+            # Dividimos el periodo (Ej: '2026-05')
+            try:
+                año, mes = p.periodo.split('-')
+                # Calculamos la suma de monto_total de todas las órdenes de este mes
+                gasto = OrdenCompra.objects.filter(
+                    fecha_orden__year=año,
+                    fecha_orden__month=mes
+                ).exclude(estado='Cancelada').aggregate(total=Sum('monto_total'))['total'] or 0
+                
+                # Actualizamos el saldo dinámicamente
+                saldo_real = p.monto_asignado - gasto
+                
+                datos.append({
+                    'periodo': p.periodo, 
+                    'presupuesto_inicial': p.monto_asignado, 
+                    'gasto_ejecutado': gasto,
+                    'saldo_actual': saldo_real
+                })
+            except ValueError:
+                # Por si el periodo no tiene formato válido
+                datos.append({
+                    'periodo': p.periodo, 
+                    'presupuesto_inicial': p.monto_asignado, 
+                    'gasto_ejecutado': p.monto_asignado - p.monto_disponible,
+                    'saldo_actual': p.monto_disponible
+                })
+                
         return Response(datos, status=status.HTTP_200_OK)
