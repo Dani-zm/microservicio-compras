@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Proveedor, Producto, ProveedorProducto, RequisicionInterna, OrdenCompra, DetalleOrden
+from .models import (
+    Proveedor, Producto, ProveedorProducto, RequisicionInterna, 
+    OrdenCompra, DetalleOrden, RecepcionPedido, PresupuestoMensual
+)
 
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -135,4 +138,54 @@ class DetalleOrdenSerializer(serializers.ModelSerializer):
             'cantidad',
             'precio',
             'subtotal'
+        ]
+
+class RecepcionPedidoSerializer(serializers.ModelSerializer):
+    codigo_orden = serializers.SlugRelatedField(
+        slug_field='codigo_orden',
+        queryset=OrdenCompra.objects.exclude(estado='Inactivo'),
+        source='id_orden'
+    )
+    
+    # Manejo de campos nulos en HTML
+    factura_numero = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    factura_archivo_url = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    observaciones_recepcion = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+
+    def validate_factura_numero(self, value):
+        return None if value == '' else value
+
+    def validate_factura_archivo_url(self, value):
+        return None if value == '' else value
+
+    def validate_observaciones_recepcion(self, value):
+        return None if value == '' else value
+
+    class Meta:
+        model = RecepcionPedido
+        fields = [
+            'codigo_recepcion',
+            'estado',
+            'fecha_recepcion',
+            'codigo_orden',
+            'observaciones_recepcion',
+            'factura_numero',
+            'factura_archivo_url',
+            'recibido_conforme'
+        ]
+
+class PresupuestoMensualSerializer(serializers.ModelSerializer):
+    observaciones = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+
+    def validate_observaciones(self, value):
+        return None if value == '' else value
+
+    class Meta:
+        model = PresupuestoMensual
+        fields = [
+            'periodo',
+            'monto_asignado',
+            'monto_disponible',
+            'fecha_asignacion',
+            'observaciones'
         ]

@@ -5,10 +5,14 @@ from django.db.models import Sum, Count, Exists, OuterRef, F
 from django.utils import timezone
 import requests as http_requests
 
-from .models import Proveedor, Producto, ProveedorProducto, RequisicionInterna, OrdenCompra, DetalleOrden
+from .models import (
+    Proveedor, Producto, ProveedorProducto, RequisicionInterna, 
+    OrdenCompra, DetalleOrden, RecepcionPedido, PresupuestoMensual
+)
 from .serializers import (
     ProveedorSerializer, ProductoSerializer, ProveedorProductoSerializer,
-    RequisicionInternaSerializer, OrdenCompraSerializer, DetalleOrdenSerializer
+    RequisicionInternaSerializer, OrdenCompraSerializer, DetalleOrdenSerializer,
+    RecepcionPedidoSerializer, PresupuestoMensualSerializer
 )
 from .constants import MS_LEGAL_SOLICITAR_TOKEN
 
@@ -267,4 +271,51 @@ class DetalleOrdenViewSet(SoftDeleteModelViewSet):
     def productos_controlados_pedidos(self, request):
         query = self.get_queryset().filter(id_producto__es_controlado=True).select_related('id_producto', 'id_orden')
         datos = [{'orden': det.id_orden.codigo_orden, 'producto_controlado': det.id_producto.nombre_producto, 'cantidad': det.cantidad} for det in query]
+        return Response(datos, status=status.HTTP_200_OK)
+
+
+class RecepcionPedidoViewSet(SoftDeleteModelViewSet):
+    queryset = RecepcionPedido.objects.all()
+    serializer_class = RecepcionPedidoSerializer
+    lookup_field = 'codigo_recepcion'
+
+    # Consulta Genérica 6: Recepciones sin factura adjunta
+    @action(detail=False, methods=['get'])
+    def sin_factura(self, request):
+        query = self.get_queryset().filter(factura_numero__isnull=True)
+        datos = [{'codigo_recepcion': rec.codigo_recepcion, 'orden': rec.id_orden.codigo_orden, 'fecha': rec.fecha_recepcion} for rec in query]
+        return Response(datos, status=status.HTTP_200_OK)
+
+    # Consulta Genérica 7: Pedidos recibidos con inconformidades (recibido_conforme=False)
+    @action(detail=False, methods=['get'])
+    def inconformes(self, request):
+        query = self.get_queryset().filter(recibido_conforme=False)
+        datos = [{'codigo_recepcion': rec.codigo_recepcion, 'orden': rec.id_orden.codigo_orden, 'observaciones': rec.observaciones_recepcion} for rec in query]
+        return Response(datos, status=status.HTTP_200_OK)
+
+
+class PresupuestoMensualViewSet(viewsets.ModelViewSet):
+    # Nota: No usamos SoftDeleteModelViewSet aquí porque este modelo no tiene un campo 'estado', 
+    # es manejado íntegramente por Finanzas y solo lo consultamos/actualizamos.
+    queryset = PresupuestoMensual.objects.all()
+    serializer_class = PresupuestoMensualSerializer
+    lookup_field = 'periodo'
+
+    # Consulta Genérica 8: Meses donde el presupuesto disponible es menor al 20% del asignado
+    @action(detail=False, methods=['get'])
+    def presupuesto_bajo(self, request):
+        query = self.get_queryset().filter(monto_disponible__lt=F('monto_asignado') * 0.20)
+        datos = [{'periodo': p.periodo, 'disponible': p.monto_disponible, 'asignado': p.monto_asignado} for p in query]
+        return Response(datos, status=status.HTTP_200_OK)
+
+    # Consulta Genérica 9: Resumen de todos los periodos y su ejecución (Gasto real)
+    @action(detail=False, methods=['get'])
+    def resumen_ejecucion(self, request):
+        query = self.get_queryset().order_by('-periodo')
+        datos = [{
+            'periodo': p.periodo, 
+            'presupuesto_inicial': p.monto_asignado, 
+            'gasto_ejecutado': p.monto_asignado - p.monto_disponible,
+            'saldo_actual': p.monto_disponible
+        } for p in query]
         return Response(datos, status=status.HTTP_200_OK)
