@@ -203,7 +203,44 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
                 status=status.HTTP_200_OK
             )
 
-        # Toma el primer producto controlado para la solicitud
+        # Si ya fue enviado, verificamos su estado en la lista de revisiones de Legal
+        if orden.token_legal == "Enviado a Legal":
+            try:
+                # Consultamos la lista completa de revisiones
+                respuesta_revisiones = http_requests.get(
+                    "https://gestionlegal-production.up.railway.app/api/SolicitudRevisions/listaCompleta",
+                    timeout=10
+                )
+                if respuesta_revisiones.status_code == 200:
+                    revisiones = respuesta_revisiones.json()
+                    # Buscamos si nuestra orden ya fue revisada
+                    revision = next((r for r in revisiones if r.get('codigoSolicitud') == orden.codigo_orden), None)
+                    
+                    if revision:
+                        resultado = revision.get('resultado')
+                        obs = revision.get('observaciones', '')
+                        codigo_rev = revision.get('codigo', 'Aprobado')
+                        
+                        if resultado == 'Aprobado':
+                            orden.token_legal = codigo_rev
+                            orden.observaciones = f"Aprobado por Legal: {obs}"
+                        else:
+                            orden.token_legal = "Rechazado"
+                            orden.observaciones = f"Rechazado por Legal: {obs}"
+                            
+                        orden.save(update_fields=['token_legal', 'observaciones'])
+                        return Response({
+                            'mensaje': f"El estado ha sido actualizado a: {resultado}",
+                            'token_legal': orden.token_legal
+                        }, status=status.HTTP_200_OK)
+                    else:
+                        return Response({
+                            'mensaje': 'La solicitud sigue en revisión por el equipo Legal. Aún no hay respuesta.'
+                        }, status=status.HTTP_200_OK)
+            except Exception as e:
+                pass # Si falla, continúa e intenta enviar de nuevo (aunque dará error de código duplicado)
+
+        # Si no ha sido enviado, toma el primer producto controlado para la solicitud
         detalle = detalles_controlados.first()
         nombre_producto = detalle.id_producto.nombre_producto
 
