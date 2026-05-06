@@ -359,12 +359,13 @@ function openModal(itemData = null, pk = null) {
             input = document.createElement('input');
             input.type = fieldMeta.type === 'datetime' ? 'datetime-local' : 'date';
             if (itemData && itemData[fieldName]) {
-                // Formatear la fecha para que encaje en el input
-                let dateStr = itemData[fieldName];
-                if (fieldMeta.type === 'datetime' && dateStr.includes('Z')) {
-                    dateStr = dateStr.substring(0, 16); // "YYYY-MM-DDThh:mm"
+                const rawDate = new Date(itemData[fieldName]);
+                if (!isNaN(rawDate)) {
+                    // Convertir UTC a hora LOCAL del navegador para que el usuario vea/edite la hora correcta
+                    const localISO = new Date(rawDate.getTime() - rawDate.getTimezoneOffset() * 60000)
+                        .toISOString().substring(0, 16);
+                    input.value = localISO;
                 }
-                input.value = dateStr;
             }
         } else {
             input = document.createElement('input');
