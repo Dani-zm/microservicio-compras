@@ -9,6 +9,7 @@ const searchInput = document.getElementById('search-input');
 const btnRefresh = document.getElementById('btn-refresh');
 const navButtons = document.querySelectorAll('.nav-list button');
 const btnAdd = document.getElementById('btn-add');
+const btnGenerateReqs = document.getElementById('btn-generate-reqs');
 
 // Elementos CRUD Modal
 const crudModal = document.getElementById('crud-modal');
@@ -50,7 +51,7 @@ const reportesGenericos = [
     { title: 'Gasto por Proveedor', url: 'ordenes/gasto_por_proveedor' },
     { title: 'Monto por Urgencia', url: 'ordenes/monto_total_por_urgencia' },
     { title: 'Órdenes Atrasadas', url: 'ordenes/ordenes_atrasadas' },
-    { title: 'Alto Presupuesto (>10k)', url: 'ordenes/ordenes_alto_presupuesto' },
+    { title: 'Alto Presupuesto (>5k)', url: 'ordenes/ordenes_alto_presupuesto' },
     { title: 'Sin Validación Financiera', url: 'ordenes/sin_validacion_financiera' },
     { title: 'Historial Validadas', url: 'ordenes/historial_validadas' },
     { title: 'Catálogo de Detalles', url: 'detalles-orden/catalogo_detalles' },
@@ -102,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnAdd.addEventListener('click', () => openModal());
+    if (btnGenerateReqs) btnGenerateReqs.addEventListener('click', generarRequisicionesPrueba);
     modalClose.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
     btnSave.addEventListener('click', saveRecord);
@@ -114,6 +116,12 @@ async function loadData(endpoint, title) {
     tableHead.innerHTML = '';
     tableBody.innerHTML = '';
     loadingSpinner.style.display = 'flex';
+    
+    if (endpoint === 'requisiciones') {
+        if (btnGenerateReqs) btnGenerateReqs.style.display = 'inline-flex';
+    } else {
+        if (btnGenerateReqs) btnGenerateReqs.style.display = 'none';
+    }
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}/`);
@@ -187,7 +195,7 @@ async function solicitarAprobacionLegal(id) {
 }
 
 async function solicitarValidacionFinanciera(id) {
-    if (!confirm(`¿Solicitar validación de presupuesto a Gestión Financiera para la orden ${id}?`)) return;
+    if (!confirm(`¿Asignar validación financiera a la orden ${id}?\nSe verificará que haya presupuesto disponible.`)) return;
     try {
         const res = await fetch(`${API_BASE_URL}ordenes/${id}/validar_financiera/`, { 
             method: 'POST',
@@ -198,13 +206,83 @@ async function solicitarValidacionFinanciera(id) {
         });
         const data = await res.json();
         if (res.ok) {
-            alert("Validación Financiera:\n" + (data.mensaje || "Éxito") + "\nID Validación: " + (data.id_validacion || "—"));
+            alert('✅ ' + (data.mensaje || 'Éxito') + '\nID: ' + (data.id_validacion || '—'));
             const activeBtn = document.querySelector('.nav-list button.active');
             loadData(currentEndpoint, activeBtn.innerText);
         } else {
-            alert("Error en Finanzas:\n" + (data.error || data.detail || data.mensaje || JSON.stringify(data)));
+            alert('❌ ' + (data.error || JSON.stringify(data)));
         }
     } catch(e) { alert(e.message); }
+}
+
+async function quitarValidacionFinanciera(id) {
+    if (!confirm(`¿Quitar la validación financiera de la orden ${id}?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}ordenes/${id}/quitar_validacion/`, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        const data = await res.json();
+        alert(data.mensaje || 'Listo');
+        const activeBtn = document.querySelector('.nav-list button.active');
+        loadData(currentEndpoint, activeBtn.innerText);
+    } catch(e) { alert(e.message); }
+}
+
+async function enviarFacturaFinanzas(id) {
+    if (!confirm(`¿Enviar la factura de la recepción ${id} a Gestión Financiera para procesar el pago al proveedor?`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}recepciones/${id}/registrar_pago/`, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('✅ ' + (data.mensaje || 'Pago registrado en Finanzas exitosamente.'));
+        } else {
+            alert('❌ ' + (data.error || JSON.stringify(data)));
+        }
+    } catch(e) { alert(e.message); }
+}
+
+async function generarRequisicionesPrueba() {
+    if (!confirm('¿Generar datos de prueba realistas para las Requisiciones Internas?')) return;
+    
+    btnGenerateReqs.disabled = true;
+    btnGenerateReqs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
+    
+    const reqs = [
+        {"codigo_requisicion": "REQ-2026-001", "area_solicitante": "Quirófano", "origen": "Cirugía", "urgencia": "Alta", "mensaje_detalle": "Solicito urgencia analgésicos fuertes para cirugía programada"},
+        {"codigo_requisicion": "REQ-2026-002", "area_solicitante": "Pediatría", "origen": "Consulta Externa", "urgencia": "Media", "mensaje_detalle": "Para abastecer botiquines de pediatría"},
+        {"codigo_requisicion": "REQ-2026-003", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Baja", "mensaje_detalle": "Stock mínimo de guantes alcanzado - reposición regular"},
+        {"codigo_requisicion": "REQ-2026-004", "area_solicitante": "UCI", "origen": "Cuidados Intensivos", "urgencia": "Alta", "mensaje_detalle": "Stock crítico de Fentanilo - pacientes en ventilación mecánica requieren sedación"},
+        {"codigo_requisicion": "REQ-2026-005", "area_solicitante": "Farmacia", "origen": "Farmacia Hospitalaria", "urgencia": "Media", "mensaje_detalle": "Reposición mensual de antibióticos y material de curación"},
+        {"codigo_requisicion": "REQ-2026-006", "area_solicitante": "Emergencias", "origen": "Sala de Emergencias", "urgencia": "Alta", "mensaje_detalle": "Necesitamos jeringas y suero fisiológico de forma urgente"},
+        {"codigo_requisicion": "REQ-2026-007", "area_solicitante": "Neonatología", "origen": "Neonatología", "urgencia": "Media", "mensaje_detalle": "Solicitud de material descartable para neonatos prematuros"}
+    ];
+    
+    try {
+        for (let r of reqs) {
+            await fetch(`${API_BASE_URL}requisiciones/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify(r)
+            });
+        }
+        alert('✅ Requisiciones generadas con éxito.');
+        loadData(currentEndpoint, 'Requisiciones');
+    } catch(e) { 
+        alert('❌ Error: ' + e.message); 
+    } finally {
+        btnGenerateReqs.disabled = false;
+        btnGenerateReqs.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Poblar Datos';
+    }
 }
 
 async function saveRecord() {
@@ -350,9 +428,42 @@ function renderTable(data) {
                 btnFinanzas.style.display = 'inline-flex';
                 btnFinanzas.style.alignItems = 'center';
                 btnFinanzas.style.gap = '4px';
-                btnFinanzas.innerHTML = '<i class="fa-solid fa-coins"></i> Finanzas';
+                btnFinanzas.innerHTML = '<i class="fa-solid fa-coins"></i> Validar $';
                 btnFinanzas.onclick = () => solicitarValidacionFinanciera(pkValue);
                 tdAcciones.appendChild(btnFinanzas);
+
+                const btnQuitarVal = document.createElement('button');
+                btnQuitarVal.style.padding = '6px 10px';
+                btnQuitarVal.style.fontSize = '0.75rem';
+                btnQuitarVal.style.backgroundColor = '#dc3545';
+                btnQuitarVal.style.color = 'white';
+                btnQuitarVal.style.border = 'none';
+                btnQuitarVal.style.borderRadius = '4px';
+                btnQuitarVal.style.cursor = 'pointer';
+                btnQuitarVal.style.display = 'inline-flex';
+                btnQuitarVal.style.alignItems = 'center';
+                btnQuitarVal.style.gap = '4px';
+                btnQuitarVal.innerHTML = '<i class="fa-solid fa-xmark"></i> Quitar $';
+                btnQuitarVal.onclick = () => quitarValidacionFinanciera(pkValue);
+                tdAcciones.appendChild(btnQuitarVal);
+            }
+
+            // Si estamos en la tabla Recepciones, agregar botón "Enviar Factura"
+            if (currentEndpoint === 'recepciones') {
+                const btnFactura = document.createElement('button');
+                btnFactura.style.padding = '6px 10px';
+                btnFactura.style.fontSize = '0.8rem';
+                btnFactura.style.backgroundColor = '#17a2b8';
+                btnFactura.style.color = 'white';
+                btnFactura.style.border = 'none';
+                btnFactura.style.borderRadius = '4px';
+                btnFactura.style.cursor = 'pointer';
+                btnFactura.style.display = 'inline-flex';
+                btnFactura.style.alignItems = 'center';
+                btnFactura.style.gap = '4px';
+                btnFactura.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Enviar Factura';
+                btnFactura.onclick = () => enviarFacturaFinanzas(pkValue);
+                tdAcciones.appendChild(btnFactura);
             }
 
             tr.appendChild(tdAcciones);
