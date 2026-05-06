@@ -263,10 +263,20 @@ function renderTable(data) {
             const td = document.createElement('td');
             let value = item[col];
 
-            if (value === null) {
-                td.innerHTML = '<span class="badge-null">Ninguno</span>';
+            if (value === null || value === undefined) {
+                td.innerHTML = '<span class="badge-null">—</span>';
             } else if (typeof value === 'boolean') {
-                td.innerHTML = value ? 'Sí' : 'No';
+                td.innerHTML = value 
+                    ? '<span style="color:#22c55e;font-weight:600;">✔ Sí</span>' 
+                    : '<span style="color:#ef4444;font-weight:600;">✘ No</span>';
+            } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                // Formatear fechas ISO → dd/mm/yyyy HH:MM
+                const fecha = new Date(value);
+                td.innerText = fecha.toLocaleDateString('es-BO', {
+                    day: '2-digit', month: '2-digit', year: 'numeric'
+                }) + ' ' + fecha.toLocaleTimeString('es-BO', {
+                    hour: '2-digit', minute: '2-digit'
+                });
             } else {
                 td.innerText = value;
             }
