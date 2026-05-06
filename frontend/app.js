@@ -257,15 +257,11 @@ function renderTable(data) {
 
     data.forEach(item => {
         const tr = document.createElement('tr');
-        let pkValue = null;
+        let pkValue = item[columns[0]]; // La primera columna siempre es el PK (código)
 
         columns.forEach(col => {
             const td = document.createElement('td');
             let value = item[col];
-
-            if (col.startsWith('codigo') || col === 'periodo') {
-                pkValue = value; 
-            }
 
             if (value === null) {
                 td.innerHTML = '<span class="badge-null">Ninguno</span>';
