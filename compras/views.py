@@ -211,31 +211,32 @@ class OrdenCompraViewSet(SoftDeleteModelViewSet):
             "TipoSolicitud": "Narcotico",
             "Motivo": "Compra de fármaco controlado - Proceso hospitalario",
             "Descripcion": f"Producto: {nombre_producto} | Cantidad: {detalle.cantidad} | Orden: {orden.codigo_orden}",
-            "FechaSolicitud": str(timezone.now().date())
+            "FechaSolicitud": timezone.now().isoformat()
         }
 
         try:
             respuesta = http_requests.post(
                 MS_LEGAL_SOLICITAR_TOKEN,
-                json=payload,   # Legal usa body JSON
+                params=payload,   # Legal exige query params según Swagger
                 timeout=10
             )
 
             if respuesta.status_code in [200, 201]:
-                datos_legal = respuesta.json() if respuesta.content else {}
-                token_recibido = datos_legal.get('token', datos_legal.get('Token', orden.codigo_orden + '-LEGAL-OK'))
-
-                # Guarda el token en la orden
-                orden.token_legal = str(token_recibido)
-                orden.save(update_fields=['token_legal'])
+                texto_respuesta = respuesta.text.strip()
+                
+                # Legal responde con un texto plano "Solicitud creada correctamente."
+                # Guardamos ese texto como confirmación temporal
+                orden.token_legal = "Enviado a Legal"
+                orden.observaciones = texto_respuesta
+                orden.save(update_fields=['token_legal', 'observaciones'])
 
                 return Response({
-                    'mensaje': f'Aprobación legal obtenida para {nombre_producto}',
+                    'mensaje': f'Solicitud enviada a Legal para {nombre_producto}.',
                     'token_legal': orden.token_legal,
-                    'respuesta_legal': datos_legal
+                    'respuesta_legal': texto_respuesta
                 }, status=status.HTTP_200_OK)
             else:
-                orden.observaciones = f'Token legal rechazado por Gestión Legal. Código: {respuesta.status_code}'
+                orden.observaciones = f'Rechazado por Legal. Código: {respuesta.status_code}'
                 orden.save(update_fields=['observaciones'])
                 return Response({
                     'error': 'Gestión Legal rechazó la solicitud',
