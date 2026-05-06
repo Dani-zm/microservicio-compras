@@ -9,7 +9,6 @@ const searchInput = document.getElementById('search-input');
 const btnRefresh = document.getElementById('btn-refresh');
 const navButtons = document.querySelectorAll('.nav-list button');
 const btnAdd = document.getElementById('btn-add');
-const btnGenerateReqs = document.getElementById('btn-generate-reqs');
 
 // Elementos CRUD Modal
 const crudModal = document.getElementById('crud-modal');
@@ -82,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = e.currentTarget.innerText;
             
             isGenericQuery = currentEndpoint.includes('/');
-            btnAdd.style.display = isGenericQuery || currentEndpoint === 'presupuestos' ? 'none' : 'inline-flex';
+            btnAdd.style.display = isGenericQuery ? 'none' : 'inline-flex';
             
             searchInput.value = '';
             loadData(currentEndpoint, title);
@@ -103,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnAdd.addEventListener('click', () => openModal());
-    // btnGenerateReqs usa onclick dinámico en loadData
     modalClose.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
     btnSave.addEventListener('click', saveRecord);
@@ -116,19 +114,6 @@ async function loadData(endpoint, title) {
     tableHead.innerHTML = '';
     tableBody.innerHTML = '';
     loadingSpinner.style.display = 'flex';
-    
-    if (endpoint === 'requisiciones' || endpoint === 'presupuestos') {
-        if (btnGenerateReqs) {
-            btnGenerateReqs.style.display = 'inline-flex';
-            // Cambiar el manejador de evento según el endpoint
-            btnGenerateReqs.onclick = () => {
-                if (endpoint === 'requisiciones') generarRequisicionesPrueba();
-                else if (endpoint === 'presupuestos') generarPresupuestosPrueba();
-            };
-        }
-    } else {
-        if (btnGenerateReqs) btnGenerateReqs.style.display = 'none';
-    }
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}/`);
