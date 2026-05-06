@@ -258,13 +258,13 @@ async function generarRequisicionesPrueba() {
     btnGenerateReqs.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
     
     const reqs = [
-        {"codigo_requisicion": "REQ-2026-001", "area_solicitante": "Quirófano", "origen": "Cirugía", "urgencia": "Alta", "mensaje_detalle": "Solicito urgencia analgésicos fuertes para cirugía programada"},
-        {"codigo_requisicion": "REQ-2026-002", "area_solicitante": "Pediatría", "origen": "Consulta Externa", "urgencia": "Media", "mensaje_detalle": "Para abastecer botiquines de pediatría"},
+        {"codigo_requisicion": "REQ-2026-001", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Alta", "mensaje_detalle": "Para Quirófano: Solicito urgencia analgésicos fuertes para cirugía programada"},
+        {"codigo_requisicion": "REQ-2026-002", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Media", "mensaje_detalle": "Para Pediatría: Abastecer botiquines de pediatría"},
         {"codigo_requisicion": "REQ-2026-003", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Baja", "mensaje_detalle": "Stock mínimo de guantes alcanzado - reposición regular"},
-        {"codigo_requisicion": "REQ-2026-004", "area_solicitante": "UCI", "origen": "Cuidados Intensivos", "urgencia": "Alta", "mensaje_detalle": "Stock crítico de Fentanilo - pacientes en ventilación mecánica requieren sedación"},
-        {"codigo_requisicion": "REQ-2026-005", "area_solicitante": "Farmacia", "origen": "Farmacia Hospitalaria", "urgencia": "Media", "mensaje_detalle": "Reposición mensual de antibióticos y material de curación"},
-        {"codigo_requisicion": "REQ-2026-006", "area_solicitante": "Emergencias", "origen": "Sala de Emergencias", "urgencia": "Alta", "mensaje_detalle": "Necesitamos jeringas y suero fisiológico de forma urgente"},
-        {"codigo_requisicion": "REQ-2026-007", "area_solicitante": "Neonatología", "origen": "Neonatología", "urgencia": "Media", "mensaje_detalle": "Solicitud de material descartable para neonatos prematuros"}
+        {"codigo_requisicion": "REQ-2026-004", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Alta", "mensaje_detalle": "Para UCI: Stock crítico de Fentanilo - pacientes en ventilación mecánica requieren sedación"},
+        {"codigo_requisicion": "REQ-2026-005", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Media", "mensaje_detalle": "Para Farmacia: Reposición mensual de antibióticos y material de curación"},
+        {"codigo_requisicion": "REQ-2026-006", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Alta", "mensaje_detalle": "Para Emergencias: Necesitamos jeringas y suero fisiológico de forma urgente"},
+        {"codigo_requisicion": "REQ-2026-007", "area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Media", "mensaje_detalle": "Para Neonatología: Solicitud de material descartable para neonatos prematuros"}
     ];
     
     try {

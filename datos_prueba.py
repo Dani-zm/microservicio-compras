@@ -115,11 +115,11 @@ def poblar_base_de_datos():
     print("Creando Requisiciones Internas...")
     req1, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-001",
-        defaults={"area_solicitante": "Quirófano", "origen": "Cirugía", "urgencia": "Alta", "mensaje_detalle": "Solicito urgencia analgésicos fuertes para cirugía programada"}
+        defaults={"area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Alta", "mensaje_detalle": "Para Quirófano: Solicito urgencia analgésicos fuertes para cirugía programada"}
     )
     req2, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-002",
-        defaults={"area_solicitante": "Pediatría", "origen": "Consulta Externa", "urgencia": "Media", "mensaje_detalle": "Para abastecer botiquines de pediatría"}
+        defaults={"area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Media", "mensaje_detalle": "Para Pediatría: Abastecer botiquines de pediatría"}
     )
     req3, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-003",
@@ -127,19 +127,19 @@ def poblar_base_de_datos():
     )
     req4, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-004",
-        defaults={"area_solicitante": "UCI", "origen": "Cuidados Intensivos", "urgencia": "Alta", "mensaje_detalle": "Stock crítico de Fentanilo - pacientes en ventilación mecánica requieren sedación"}
+        defaults={"area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Alta", "mensaje_detalle": "Para UCI: Stock crítico de Fentanilo - pacientes en ventilación mecánica requieren sedación"}
     )
     req5, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-005",
-        defaults={"area_solicitante": "Farmacia", "origen": "Farmacia Hospitalaria", "urgencia": "Media", "mensaje_detalle": "Reposición mensual de antibióticos y material de curación"}
+        defaults={"area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Media", "mensaje_detalle": "Para Farmacia: Reposición mensual de antibióticos y material de curación"}
     )
     req6, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-006",
-        defaults={"area_solicitante": "Emergencias", "origen": "Sala de Emergencias", "urgencia": "Alta", "mensaje_detalle": "Necesitamos jeringas y suero fisiológico de forma urgente"}
+        defaults={"area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Alta", "mensaje_detalle": "Para Emergencias: Necesitamos jeringas y suero fisiológico de forma urgente"}
     )
     req7, _ = RequisicionInterna.objects.get_or_create(
         codigo_requisicion="REQ-2026-007",
-        defaults={"area_solicitante": "Neonatología", "origen": "Neonatología", "urgencia": "Media", "mensaje_detalle": "Solicitud de material descartable para neonatos prematuros"}
+        defaults={"area_solicitante": "Logística", "origen": "Almacén Central", "urgencia": "Media", "mensaje_detalle": "Para Neonatología: Solicitud de material descartable para neonatos prematuros"}
     )
 
     # 6. Crear Órdenes de Compra
