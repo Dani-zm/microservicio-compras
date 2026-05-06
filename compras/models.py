@@ -56,9 +56,16 @@ class RequisicionInterna(models.Model):
 
 # 5.- Modelo Orden_Compra
 class OrdenCompra(models.Model):
+    ESTADOS_ORDEN = [
+        ('Pendiente', 'Pendiente'),
+        ('Emitida', 'Emitida'),
+        ('En Tránsito', 'En Tránsito'),
+        ('Recibida', 'Recibida'),
+        ('Cancelada', 'Cancelada'),
+    ]
     id_orden = models.AutoField(primary_key=True)
     codigo_orden = models.CharField(max_length=50, unique=True)
-    estado = models.CharField(max_length=50, default='Emitida')
+    estado = models.CharField(max_length=50, choices=ESTADOS_ORDEN, default='Emitida')
     fecha_orden = models.DateTimeField(auto_now_add=True)
     fecha_estimada_entrega = models.DateTimeField(null=True, blank=True)
     id_proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, related_name='ordenes_compra')
@@ -94,9 +101,14 @@ class DetalleOrden(models.Model):
 
 # 7.- Modelo Recepcion_Pedido
 class RecepcionPedido(models.Model):
+    ESTADOS_RECEPCION = [
+        ('Pendiente', 'Pendiente'),
+        ('Recibido', 'Recibido'),
+        ('Rechazado', 'Rechazado'),
+    ]
     id_recepcion = models.AutoField(primary_key=True)
     codigo_recepcion = models.CharField(max_length=50, unique=True)
-    estado = models.CharField(max_length=50, default='Recibido')
+    estado = models.CharField(max_length=50, choices=ESTADOS_RECEPCION, default='Recibido')
     fecha_recepcion = models.DateTimeField(auto_now_add=True)
     id_orden = models.ForeignKey(OrdenCompra, on_delete=models.CASCADE, related_name='recepciones')
     observaciones_recepcion = models.TextField(null=True, blank=True)
