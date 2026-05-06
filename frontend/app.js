@@ -314,6 +314,17 @@ function openModal(itemData = null, pk = null) {
                 input.appendChild(opt);
             });
             if (itemData && itemData[fieldName]) input.value = itemData[fieldName];
+        } else if (fieldMeta.type === 'datetime' || fieldMeta.type === 'date') {
+            input = document.createElement('input');
+            input.type = fieldMeta.type === 'datetime' ? 'datetime-local' : 'date';
+            if (itemData && itemData[fieldName]) {
+                // Formatear la fecha para que encaje en el input
+                let dateStr = itemData[fieldName];
+                if (fieldMeta.type === 'datetime' && dateStr.includes('Z')) {
+                    dateStr = dateStr.substring(0, 16); // "YYYY-MM-DDThh:mm"
+                }
+                input.value = dateStr;
+            }
         } else {
             input = document.createElement('input');
             input.type = fieldMeta.type === 'decimal' || fieldMeta.type === 'integer' ? 'number' : 'text';
