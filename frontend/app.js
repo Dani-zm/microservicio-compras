@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = e.currentTarget.innerText;
             
             isGenericQuery = currentEndpoint.includes('/');
-            btnAdd.style.display = isGenericQuery ? 'none' : 'inline-flex';
+            btnAdd.style.display = isGenericQuery || currentEndpoint === 'presupuestos' ? 'none' : 'inline-flex';
             
             searchInput.value = '';
             loadData(currentEndpoint, title);
